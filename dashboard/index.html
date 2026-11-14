@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Launch Radar — pre-token protocols ranked by implied launch value</title>
+<meta name="description" content="A radar for protocol launches that have not happened yet: every protocol that records no token, ranked by what its launch would be worth, with the steps to farm each one.">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the board</a>
+
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">&#9679;</span>
+      <span class="brand-name">Launch&nbsp;Radar</span>
+      <span class="brand-sub">pre-token protocol board</span>
+    </div>
+    <nav class="topnav" aria-label="Views">
+      <a href="#/" data-nav="board">Board</a>
+      <a href="#/live" data-nav="live">Live tokens</a>
+      <a href="#/method" data-nav="method">Method</a>
+    </nav>
+    <p class="snapshot-line">Snapshot <strong id="as-of">—</strong> &middot; model <span id="model-version">—</span></p>
+  </div>
+</header>
+
+<main id="main" class="wrap" tabindex="-1">
+  <section class="hero" aria-label="About this board">
+    <h1>Which launch is worth farming next?</h1>
+    <p class="hero-lede">Every protocol in the snapshot that <strong>records no token</strong>, ranked by the
+    implied value of its launch — what the token would be worth if the protocol's record stayed as it
+    is. No predictions about whether or when a token appears. Each row carries the steps to farm it.</p>
+    <dl class="stats" id="stats"></dl>
+  </section>
+
+  <section class="leaders" id="leaders" aria-label="Top ten by implied value">
+    <h2>Leaders by implied value</h2>
+    <div id="leaders-chart" role="img" aria-label="Horizontal bars for the ten highest implied values"></div>
+  </section>
+
+  <section class="board-view" id="view-board" aria-label="Ranked board">
+    <form class="controls" id="controls" aria-label="Filter and sort the board">
+      <label class="ctl ctl-search">Search
+        <input type="search" id="q" placeholder="Protocol name or slug" autocomplete="off">
+      </label>
+      <label class="ctl">Category
+        <select id="category"><option value="">All categories</option></select>
+      </label>
+      <label class="ctl">Chain
+        <select id="chain"><option value="">All chains</option></select>
+      </label>
+      <label class="ctl">Sort by
+        <select id="sort">
+          <option value="implied">Implied value</option>
+          <option value="tvl">TVL</option>
+          <option value="growth">7-day change</option>
+          <option value="age">Age listed</option>
+          <option value="name">Name</option>
+        </select>
+      </label>
+      <label class="ctl-check"><input type="checkbox" id="watchlist-only"> Watchlist only</label>
+      <label class="ctl-check"><input type="checkbox" id="early-only"> Early finds only</label>
+      <button type="button" id="reset" class="btn-ghost">Reset</button>
+    </form>
+    <p class="result-line" id="result-line" role="status"></p>
+    <div class="table-scroll">
+      <table class="board" id="board-table">
+        <thead>
+          <tr>
+            <th scope="col" data-sort="implied" class="num sortable">#</th>
+            <th scope="col" data-sort="name" class="sortable">Protocol</th>
+            <th scope="col">Category</th>
+            <th scope="col">Chains</th>
+            <th scope="col" data-sort="tvl" class="num sortable">TVL</th>
+            <th scope="col" data-sort="growth" class="num sortable">7d</th>
+            <th scope="col" data-sort="age" class="num sortable">Age</th>
+            <th scope="col" data-sort="implied" class="num sortable">Implied value</th>
+            <th scope="col">Farm plan</th>
+          </tr>
+        </thead>
+        <tbody id="board-body"></tbody>
+      </table>
+    </div>
+    <p class="board-note">Rank is the model's claim, not the table's order: sorting reorders the rows, the
+    rank numbers stay with their protocols. Click any row for the detail view and the full farm plan.</p>
+  </section>
+
+  <section class="detail-view" id="view-detail" aria-label="Protocol detail" hidden></section>
+
+  <section class="live-view" id="view-live" aria-label="Protocols whose token already trades" hidden>
+    <h2>Already trading — not ranked</h2>
+    <p>These protocols record a token, so the market has already priced them. They are shown apart from
+    the board, with the market's own market cap, never mixed into the implied-value ranking.</p>
+    <div class="table-scroll">
+      <table class="board" id="live-table">
+        <thead>
+          <tr>
+            <th scope="col">Protocol</th>
+            <th scope="col">Category</th>
+            <th scope="col">Chains</th>
+            <th scope="col" class="num">TVL</th>
+            <th scope="col" class="num">Market cap</th>
+            <th scope="col" class="num">7d</th>
+          </tr>
+        </thead>
+        <tbody id="live-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="method-view" id="view-method" aria-label="How the ranking is built" hidden>
+    <h2>How the ranking is built</h2>
+    <p>The board is a program's answer, not a hand-kept list. One scoring function runs over every
+    protocol in the snapshot; no name is ever special-cased. The inputs are only the snapshot's own
+    figures: TVL, seven-day change, listing date and chains.</p>
+    <h3>Who is ranked</h3>
+    <p>A protocol is ranked when its record shows <strong>no token</strong> — market cap, CoinGecko id
+    and symbol all null — and it is not a wrapped, staked or bridged product of a token that already
+    trades. That means its category is not a bridge, liquid staking/restaking or exchange bucket, its
+    name carries no whole word <em>wrapped</em>, <em>staked</em> or <em>staking</em>, does not start with
+    an exchange's name, and does not end in a version marker. Every protocol on the snapshot's
+    watchlist is ranked, and so is every other eligible protocol below the watchlist floor: the floor
+    is where the reading starts, not where it stops.</p>
+    <h3>The value model</h3>
+    <p class="formula">implied value = TVL &times; 0.30 &times; growth &times; age &times; reach</p>
+    <ul class="factors">
+      <li><strong>Growth</strong> = 1 + 0.40 &times; seven-day change, clamped to &minus;50% … +200%.
+      Momentum counts, but one hot week cannot dominate the board. An unreported change counts as flat.</li>
+      <li><strong>Age</strong> = 0.55 + 0.45 &times; days listed (capped at 3 years) / 3 years. Survival
+      counts: a protocol that ran for years with no token has a deeper base of users to reward. An
+      unreported listing date counts as one year.</li>
+      <li><strong>Reach</strong> = 1 + 0.04 per chain beyond the first, up to five extra chains.
+      Distribution breadth counts a little.</li>
+    </ul>
+    <p>Each protocol's detail view shows its own four factors and the arithmetic, so any rank can be
+    checked by hand from the snapshot.</p>
+    <h3>Farm plans</h3>
+    <p>Every row carries six steps generated from the protocol's own record: its category picks the
+    action, its TVL sizes the capital, its age sets the holding window, its chains name the venue.
+    Each step states what it costs and how long it takes. Nothing here promises a token, an airdrop
+    or a reward: a protocol that records no token may still have one its record does not carry, and a
+    real claim never asks you to pay first.</p>
+    <h3>What the board is not</h3>
+    <p>The implied value is this entry's own claim, never one the data source makes. The snapshot is
+    frozen: it does not move, and neither does this board. Figures are the snapshot's, truncated to
+    whole dollars as recorded.</p>
+  </section>
+
+  <footer class="foot">
+    <p id="source-line">Source: —</p>
+    <p>Launch Radar ranks protocols that <strong>record</strong> no token. That is the record's word,
+    not proof: a protocol on this board may have a token its record does not carry. Do your own
+    checks before you deposit anything.</p>
+  </footer>
+</main>
+
+<script src="../data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
